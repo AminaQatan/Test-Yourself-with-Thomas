@@ -52,14 +52,17 @@
         .blob { position: fixed; width: 400px; height: 400px; filter: blur(80px); z-index: -1; opacity: 0.4; pointer-events: none; }
         .transition-all { transition: all 0.3s ease; }
         .answer-btn:active { transform: scale(0.98); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #0D9488; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-background text-gray-800 font-sans min-h-screen flex flex-col overflow-x-hidden">
-    <!-- Background Elements -->
+    <!-- Background Design Elements -->
     <div class="blob bg-primary/20 top-[-10%] right-[-10%] animate-blob"></div>
     <div class="blob bg-secondary/15 bottom-[-10%] left-[-10%] animate-blob" style="animation-delay: 2s;"></div>
     
-    <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-50 no-print">
+    <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-50 no-print border-b border-teal-100">
         <div class="max-w-2xl mx-auto flex items-center justify-between">
             <h1 class="text-xl font-bold text-primary flex items-center gap-2">
                 <span class="text-2xl">🧠</span> اختبر نفسك مع توماس
@@ -74,18 +77,18 @@
     </header>
 
     <main id="root" class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center z-10 min-h-[70vh]">
-        <!-- Views will be rendered here -->
+        <!-- Dynamic Content Injected Here -->
     </main>
 
-    <footer class="bg-white/80 backdrop-blur-sm py-6 border-t mt-auto no-print z-10">
-        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
-            <p>@2025 | اختبر نفسك مع توماس</p>
-            <p class="text-xs mt-1">صمم بواسطة: أ. أمينة قطن</p>
+    <footer class="bg-white/80 backdrop-blur-sm py-8 border-t mt-auto no-print z-10 border-teal-100">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm space-y-2">
+            <p class="font-bold text-gray-700">2026 | اختبر نفسك مع توماس</p>
+            <p class="text-xs">صمم بواسطة: أ. أمينة قطن</p>
         </div>
     </footer>
 
     <script>
-        // --- Questions Data ---
+        // --- Questions & Categories Data ---
         const Category = {
             ATTENTION: 'الانتباه والتركيز',
             MEMORY: 'الذاكرة العاملة والقصيرة',
@@ -133,7 +136,7 @@
             { text: "أتعافى نفسياً بسرعة بعد يوم سيء أو موقف محبط.", category: Category.FLEXIBILITY },
         ];
 
-        // --- State Management ---
+        // --- Application State ---
         let state = {
             step: 'welcome',
             userInfo: JSON.parse(localStorage.getItem('thomas_quiz_user')) || { fullName: '', phone: '', isStudent: false },
@@ -148,31 +151,32 @@
             isAdmin: new URLSearchParams(window.location.search).get('admin') === 'true'
         };
 
-        // --- Sound Logic ---
+        // --- Core Functions ---
         const playSound = (type) => {
             if (state.isMuted) return;
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const gain = audioCtx.createGain();
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+
+            const osc = audioCtx.createOscillator();
             if (type === 'click') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
                 osc.frequency.setValueAtTime(440, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.1);
             } else if (type === 'success') {
                 [523, 659, 783, 1046].forEach((f, i) => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.frequency.setValueAtTime(f, audioCtx.currentTime + i * 0.1);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime + i * 0.1);
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(audioCtx.currentTime + i * 0.1); osc.stop(audioCtx.currentTime + i * 0.1 + 0.2);
+                    const o = audioCtx.createOscillator();
+                    o.frequency.setValueAtTime(f, audioCtx.currentTime + i * 0.1);
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0.05, audioCtx.currentTime + i * 0.1);
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.start(audioCtx.currentTime + i * 0.1); o.stop(audioCtx.currentTime + i * 0.1 + 0.2);
                 });
             }
+            osc.connect(gain);
         };
 
-        // --- Scoring Logic ---
         const calculateResults = () => {
             const categories = Object.values(Category);
             const categoryScores = [];
@@ -214,11 +218,11 @@
             return { categoryScores, averageScore, overallLevel, strengths, improvements, plan };
         };
 
-        // --- Views ---
+        // --- View Rendering ---
         const render = () => {
             const root = document.getElementById('root');
             root.innerHTML = '';
-            window.scrollTo(0,0);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
             switch(state.step) {
                 case 'welcome': renderWelcome(root); break;
@@ -232,40 +236,52 @@
 
         const renderWelcome = (root) => {
             root.innerHTML = `
-                <div class="text-center space-y-8 animate-fade-in max-w-md">
-                    <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-xl mx-auto animate-pulse-subtle">
-                        <span class="text-5xl">🧐</span>
+                <div class="text-center space-y-10 animate-fade-in max-w-md w-full px-4">
+                    <div class="relative inline-block">
+                        <div class="w-32 h-32 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl mx-auto animate-pulse-subtle">
+                            <span class="text-6xl">🧐</span>
+                        </div>
+                        <div class="absolute -bottom-2 -right-2 bg-secondary text-white p-2 rounded-full shadow-lg">✨</div>
                     </div>
                     <div class="space-y-4">
-                        <h2 class="text-3xl font-extrabold text-gray-800">مرحباً! أنا توماس 👋</h2>
-                        <p class="text-gray-600 leading-relaxed">أنا رفيقك الذكي. سأقوم بتقييم قدراتك الذهنية والعقلية بأسلوب ممتع ودقيق لنعرف مواطن قوتك.</p>
+                        <h2 class="text-4xl font-extrabold text-gray-800">اختبر نفسك مع توماس</h2>
+                        <div class="bg-white/60 p-6 rounded-3xl shadow-sm border border-teal-50">
+                            <p class="text-teal-800 font-bold mb-2">هدف التطبيق:</p>
+                            <p class="text-gray-600 leading-relaxed">يهدف هذا التطبيق إلى تقييم المهارات الذهنية الأساسية وتوفير خطة تطوير شخصية لمساعدتك في رفع كفاءة أدائك العقلي في الدراسة والعمل.</p>
+                        </div>
                     </div>
-                    <button onclick="navigate('registration')" class="w-full bg-primary text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:bg-teal-700 active:scale-95 transition-all text-xl">لنبدأ الرحلة 🚀</button>
+                    <button onclick="navigate('registration')" class="w-full bg-primary text-white font-bold py-5 px-8 rounded-[2rem] shadow-xl hover:bg-teal-700 active:scale-95 transition-all text-xl ring-offset-2 hover:ring-2 ring-primary">ابدأ الرحلة 🚀</button>
                 </div>
             `;
         };
 
         const renderRegistration = (root) => {
             root.innerHTML = `
-                <div class="w-full max-w-md bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-t-8 border-primary animate-fade-in">
-                    <h2 class="text-2xl font-bold text-primary text-center mb-6">من أنت أيها الذكي؟ 📝</h2>
-                    <form id="regForm" onsubmit="handleRegistration(event)" class="space-y-5">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">الاسم بالكامل</label>
-                            <input id="fullName" type="text" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary text-right" placeholder="أدخل اسمك هنا" value="${state.userInfo.fullName}">
+                <div class="w-full max-w-md bg-white p-8 rounded-[2.5rem] shadow-2xl border-t-8 border-primary animate-fade-in">
+                    <h2 class="text-2xl font-bold text-primary text-center mb-8">من أنت أيها الذكي؟ 📝</h2>
+                    <form id="regForm" onsubmit="handleRegistration(event)" class="space-y-6">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-bold text-gray-600 mr-2">الاسم بالكامل</label>
+                            <input id="fullName" type="text" required class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all text-right" placeholder="أدخل اسمك هنا" value="${state.userInfo.fullName}">
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">رقم الهاتف</label>
-                            <input id="phone" type="tel" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary text-right" placeholder="9xxxxxxx" value="${state.userInfo.phone}">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-bold text-gray-600 mr-2">رقم الهاتف</label>
+                            <input id="phone" type="tel" required class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all text-right" placeholder="9xxxxxxx" value="${state.userInfo.phone}">
                         </div>
-                        <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">هل أنت طالب بالكلية المهنية؟</label>
-                            <div class="flex gap-6">
-                                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="isStudent" value="true" ${state.userInfo.isStudent ? 'checked' : ''}> نعم</label>
-                                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="isStudent" value="false" ${!state.userInfo.isStudent ? 'checked' : ''}> لا</label>
+                        <div class="bg-teal-50/50 p-5 rounded-2xl border border-teal-100">
+                            <label class="block text-sm font-bold text-teal-800 mb-3">هل أنت طالب بالكلية المهنية؟</label>
+                            <div class="flex gap-8">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="radio" name="isStudent" value="true" ${state.userInfo.isStudent ? 'checked' : ''} class="w-5 h-5 accent-primary"> 
+                                    <span class="font-medium group-hover:text-primary transition-colors">نعم</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="radio" name="isStudent" value="false" ${!state.userInfo.isStudent ? 'checked' : ''} class="w-5 h-5 accent-primary"> 
+                                    <span class="font-medium group-hover:text-primary transition-colors">لا</span>
+                                </label>
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md hover:bg-teal-700 active:scale-95 transition-all">متابعة ➡️</button>
+                        <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md hover:bg-teal-700 active:scale-95 transition-all text-lg">استمرار ➡️</button>
                     </form>
                 </div>
             `;
@@ -273,18 +289,30 @@
 
         const renderMode = (root) => {
             root.innerHTML = `
-                <div class="text-center space-y-8 animate-fade-in max-w-md w-full">
-                    <h2 class="text-2xl font-bold text-gray-800">رائع يا ${state.userInfo.fullName.split(' ')[0]}! ✨</h2>
-                    <p class="text-gray-600">اختر النمط الذي تفضله للاختبار:</p>
+                <div class="text-center space-y-10 animate-fade-in max-w-md w-full">
+                    <h2 class="text-3xl font-black text-gray-800">أهلاً بك يا ${state.userInfo.fullName.split(' ')[0]}! ✨</h2>
+                    <p class="text-gray-500 font-medium">اختر النمط الذي يناسبك للاختبار:</p>
                     <div class="grid gap-4">
-                        <button onclick="startQuiz('سريع')" class="w-full bg-white border-2 border-primary text-primary font-bold py-5 rounded-2xl shadow hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-6">
-                            <span>سريع (12 سؤال)</span> <span class="text-2xl">🏎️</span>
+                        <button onclick="startQuiz('سريع')" class="w-full bg-white border-2 border-primary/20 text-primary font-bold py-6 rounded-3xl shadow-sm hover:border-primary hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-8">
+                            <div class="text-right">
+                                <div class="text-lg">سريع</div>
+                                <div class="text-xs font-normal text-gray-400">12 سؤال فقط</div>
+                            </div>
+                            <span class="text-3xl">🏎️</span>
                         </button>
-                        <button onclick="startQuiz('قياسي')" class="w-full bg-primary text-white font-bold py-5 rounded-2xl shadow-lg hover:bg-teal-700 active:scale-95 transition-all flex items-center justify-between px-6">
-                            <span>قياسي (24 سؤال)</span> <span class="text-2xl">📏</span>
+                        <button onclick="startQuiz('قياسي')" class="w-full bg-primary text-white font-bold py-6 rounded-3xl shadow-xl hover:bg-teal-700 active:scale-95 transition-all flex items-center justify-between px-8 ring-offset-4 hover:ring-2 ring-primary">
+                             <div class="text-right">
+                                <div class="text-lg">قياسي</div>
+                                <div class="text-xs font-normal text-teal-100">24 سؤال (شامل)</div>
+                            </div>
+                            <span class="text-3xl">📏</span>
                         </button>
-                        <button onclick="startQuiz('موسّع')" class="w-full bg-white border-2 border-primary text-primary font-bold py-5 rounded-2xl shadow hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-6">
-                            <span>موسّع (36 سؤال)</span> <span class="text-2xl">🧠</span>
+                        <button onclick="startQuiz('موسّع')" class="w-full bg-white border-2 border-primary/20 text-primary font-bold py-6 rounded-3xl shadow-sm hover:border-primary hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-8">
+                             <div class="text-right">
+                                <div class="text-lg">موسّع</div>
+                                <div class="text-xs font-normal text-gray-400">36 سؤال (دقيق جداً)</div>
+                            </div>
+                            <span class="text-3xl">🧠</span>
                         </button>
                     </div>
                 </div>
@@ -293,12 +321,12 @@
 
         const renderReportType = (root) => {
             root.innerHTML = `
-                <div class="text-center space-y-8 animate-fade-in max-w-md w-full">
-                    <div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto shadow-lg"><span class="text-4xl">📊</span></div>
-                    <h2 class="text-2xl font-bold text-gray-800">نوع التقرير المفضل؟</h2>
+                <div class="text-center space-y-10 animate-fade-in max-w-md w-full">
+                    <div class="w-24 h-24 bg-secondary/10 rounded-full flex items-center justify-center mx-auto shadow-inner border border-secondary/20"><span class="text-5xl">📊</span></div>
+                    <h2 class="text-2xl font-bold text-gray-800">كيف ننتج تقريرك؟</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button onclick="setReportType('مختصر')" class="bg-white border-2 border-primary text-primary font-bold py-6 rounded-2xl hover:bg-teal-50 transition-all shadow">ملخص النتيجة</button>
-                        <button onclick="setReportType('مفصّل')" class="bg-primary text-white font-bold py-6 rounded-2xl hover:bg-teal-700 transition-all shadow-lg">تحليل كامل</button>
+                        <button onclick="setReportType('مختصر')" class="bg-white border-2 border-gray-100 text-gray-600 font-bold py-6 rounded-3xl hover:border-primary hover:text-primary transition-all shadow-sm">ملخص النتيجة</button>
+                        <button onclick="setReportType('مفصّل')" class="bg-primary text-white font-bold py-6 rounded-3xl hover:bg-teal-700 transition-all shadow-lg">تحليل تفصيلي</button>
                     </div>
                 </div>
             `;
@@ -309,32 +337,32 @@
             const progress = Math.round(((state.currentQIndex + 1) / state.questions.length) * 100);
             
             root.innerHTML = `
-                <div class="w-full max-w-xl animate-fade-in">
+                <div class="w-full max-w-xl animate-fade-in px-2">
                     <div class="flex justify-between items-center mb-6 no-print">
-                        <div class="text-sm font-bold text-gray-400">السؤال ${state.currentQIndex + 1} من ${state.questions.length}</div>
-                        <button onclick="navigate('welcome')" class="text-xs text-red-500 hover:underline">إلغاء الاختبار</button>
+                        <div class="text-sm font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-lg">السؤال ${state.currentQIndex + 1} من ${state.questions.length}</div>
+                        <button onclick="navigate('welcome')" class="text-xs font-bold text-red-400 hover:text-red-600 hover:underline">إلغاء الاختبار</button>
                     </div>
                     
-                    <div class="w-full bg-gray-200 h-2 rounded-full mb-8 overflow-hidden shadow-inner">
-                        <div class="bg-secondary h-full transition-all duration-500" style="width: ${progress}%"></div>
+                    <div class="w-full bg-gray-200 h-3 rounded-full mb-10 overflow-hidden shadow-inner p-[2px]">
+                        <div class="bg-gradient-to-l from-secondary to-amber-400 h-full rounded-full transition-all duration-500 shadow-sm" style="width: ${progress}%"></div>
                     </div>
 
-                    <div class="bg-white p-10 rounded-3xl shadow-xl border-b-8 border-primary text-center mb-8 min-h-[160px] flex items-center justify-center relative">
-                        <div class="absolute -top-3 right-6 bg-primary text-white text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">${q.category}</div>
-                        <h3 class="text-2xl font-bold text-gray-800 leading-relaxed">"${q.text}"</h3>
+                    <div class="bg-white p-12 rounded-[3rem] shadow-2xl border-b-[10px] border-primary text-center mb-10 min-h-[220px] flex items-center justify-center relative group">
+                        <div class="absolute -top-4 right-10 bg-primary text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-lg transition-transform group-hover:scale-105">${q.category}</div>
+                        <h3 class="text-3xl font-bold text-gray-800 leading-snug">"${q.text}"</h3>
                     </div>
 
-                    <div class="grid gap-3">
+                    <div class="grid gap-4">
                         ${[
-                            { score: 5, label: "ينطبق تماماً", emoji: "🤩" },
-                            { score: 4, label: "ينطبق غالباً", emoji: "🙂" },
-                            { score: 3, label: "أحياناً", emoji: "😐" },
-                            { score: 2, label: "نادراً", emoji: "😕" },
-                            { score: 1, label: "لا ينطبق", emoji: "🙅‍♂️" }
+                            { score: 5, label: "ينطبق تماماً", emoji: "🤩", color: "hover:bg-green-50" },
+                            { score: 4, label: "ينطبق غالباً", emoji: "🙂", color: "hover:bg-blue-50" },
+                            { score: 3, label: "أحياناً", emoji: "😐", color: "hover:bg-gray-50" },
+                            { score: 2, label: "نادراً", emoji: "😕", color: "hover:bg-orange-50" },
+                            { score: 1, label: "لا ينطبق", emoji: "🙅‍♂️", color: "hover:bg-red-50" }
                         ].map(opt => `
-                            <button onclick="handleAnswer(${opt.score})" class="answer-btn flex items-center justify-between p-4 bg-white/80 border border-gray-200 rounded-2xl hover:bg-teal-50 hover:border-primary transition-all group">
-                                <span class="text-3xl group-hover:scale-110 transition-transform">${opt.emoji}</span>
-                                <span class="font-bold text-gray-700 text-lg">${opt.label}</span>
+                            <button onclick="handleAnswer(${opt.score})" class="answer-btn flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.5rem] ${opt.color} hover:border-primary/40 transition-all group shadow-sm">
+                                <span class="text-4xl group-hover:scale-110 transition-transform">${opt.emoji}</span>
+                                <span class="font-bold text-gray-700 text-xl">${opt.label}</span>
                             </button>
                         `).join('')}
                     </div>
@@ -345,93 +373,121 @@
         const renderResults = (root) => {
             const res = state.results;
             root.innerHTML = `
-                <div class="w-full max-w-3xl space-y-8 animate-fade-in pb-12">
-                    <div class="text-center space-y-2">
-                        <div class="text-5xl mb-4">🏆</div>
-                        <h2 class="text-3xl font-black text-gray-800">تقرير القدرات الذهنية</h2>
-                        <div class="text-primary font-bold text-xl">${state.userInfo.fullName}</div>
-                        <div class="text-sm text-gray-400">رقم الهاتف: ${state.userInfo.phone} | ${state.userInfo.isStudent ? 'طالب بالكلية' : 'زائر'}</div>
+                <div class="w-full max-w-3xl space-y-10 animate-fade-in pb-20 px-2">
+                    <div class="text-center space-y-4">
+                        <div class="text-6xl animate-bounce">🏆</div>
+                        <h2 class="text-4xl font-black text-gray-800">نتائج قدراتك الذهنية</h2>
+                        <div class="text-primary font-bold text-2xl">${state.userInfo.fullName}</div>
+                        <div class="inline-flex gap-3 text-xs bg-gray-100 px-4 py-2 rounded-full font-bold text-gray-500">
+                            <span>الهاتف: ${state.userInfo.phone}</span>
+                            <span class="w-px h-4 bg-gray-300"></span>
+                            <span>الفئة: ${state.userInfo.isStudent ? 'طالب مهني' : 'ضيف'}</span>
+                        </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-primary to-teal-800 text-white p-8 rounded-[40px] shadow-2xl text-center relative overflow-hidden print-break-inside-avoid">
-                        <div class="relative z-10 space-y-1">
-                            <div class="text-sm uppercase tracking-widest opacity-80">متوسط ذكاء الأداء</div>
-                            <div class="text-7xl font-black">${res.averageScore}%</div>
-                            <div class="inline-block bg-white/20 backdrop-blur-sm px-6 py-2 rounded-full font-bold mt-4">المستوى: ${res.overallLevel}</div>
+                    <!-- Main Score Card -->
+                    <div class="bg-gradient-to-br from-teal-500 to-teal-800 text-white p-10 rounded-[4rem] shadow-2xl text-center relative overflow-hidden print-break-inside-avoid ring-8 ring-white/50">
+                        <div class="relative z-10 space-y-2">
+                            <div class="text-sm uppercase tracking-[0.2em] font-bold opacity-80">مؤشر الكفاءة الذهنية</div>
+                            <div class="text-8xl font-black drop-shadow-lg">${res.averageScore}%</div>
+                            <div class="inline-block bg-white text-primary px-8 py-2 rounded-full font-black mt-6 shadow-xl">المستوى: ${res.overallLevel}</div>
                         </div>
-                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                        <div class="absolute -right-16 -bottom-16 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
+                        <div class="absolute -left-10 -top-10 w-40 h-40 bg-secondary/20 rounded-full blur-2xl"></div>
                     </div>
 
                     ${state.reportType === 'مفصّل' ? `
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 print-break-inside-avoid">
-                                <h3 class="font-bold text-gray-700 mb-6 text-center">توزيع القدرات الذهنية</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                            <div class="bg-white p-8 rounded-[3rem] shadow-xl border border-gray-50 print-break-inside-avoid flex flex-col justify-center">
+                                <h3 class="font-black text-gray-700 mb-8 text-center text-xl">خريطة القدرات</h3>
                                 <canvas id="scoreChart" class="w-full"></canvas>
                             </div>
-                            <div class="space-y-4">
-                                <div class="bg-green-50 p-6 rounded-3xl border border-green-100 print-break-inside-avoid">
-                                    <h4 class="font-bold text-green-800 mb-3 flex items-center gap-2"><span>💪</span> نقاط القوة</h4>
-                                    <ul class="text-sm space-y-3 text-gray-700">
-                                        ${res.strengths.map(s => `<li class="flex items-start gap-2"><span class="text-green-500 font-bold">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</li>`).join('')}
+                            <div class="space-y-6">
+                                <div class="bg-white p-8 rounded-[2.5rem] shadow-lg border-r-[10px] border-green-500 print-break-inside-avoid">
+                                    <h4 class="font-black text-green-700 mb-4 flex items-center gap-3 text-lg">
+                                        <span class="bg-green-100 p-2 rounded-xl">💪</span> نقاط القوة
+                                    </h4>
+                                    <ul class="text-sm space-y-4 text-gray-700">
+                                        ${res.strengths.map(s => `<li class="flex items-start gap-3"><span class="text-green-500 mt-1 font-bold text-lg">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b class="text-green-800">$1</b>')}</li>`).join('')}
                                     </ul>
                                 </div>
-                                <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100 print-break-inside-avoid">
-                                    <h4 class="font-bold text-amber-800 mb-3 flex items-center gap-2"><span>🌱</span> مجالات التطور</h4>
-                                    <ul class="text-sm space-y-3 text-gray-700">
-                                        ${res.improvements.map(s => `<li class="flex items-start gap-2"><span class="text-amber-500 font-bold">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</li>`).join('')}
+                                <div class="bg-white p-8 rounded-[2.5rem] shadow-lg border-r-[10px] border-amber-500 print-break-inside-avoid">
+                                    <h4 class="font-black text-amber-700 mb-4 flex items-center gap-3 text-lg">
+                                        <span class="bg-amber-100 p-2 rounded-xl">🌱</span> مسارات التطوير
+                                    </h4>
+                                    <ul class="text-sm space-y-4 text-gray-700">
+                                        ${res.improvements.map(s => `<li class="flex items-start gap-3"><span class="text-amber-500 mt-1 font-bold text-lg">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b class="text-amber-800">$1</b>')}</li>`).join('')}
                                     </ul>
                                 </div>
                             </div>
                         </div>
                     ` : ''}
 
-                    <div class="bg-white p-8 rounded-3xl shadow-xl border-t-8 border-secondary print-break-inside-avoid">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-bold text-gray-800">📅 خطة التطوير (7 أيام)</h3>
-                            <button onclick="togglePlan()" class="text-primary text-sm font-bold no-print">${state.showPlan ? 'إخفاء الخطة' : 'إظهار التفاصيل'}</button>
+                    <!-- 7 Day Training Plan -->
+                    <div class="bg-white p-10 rounded-[3.5rem] shadow-2xl border-t-8 border-secondary print-break-inside-avoid">
+                        <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+                            <h3 class="text-2xl font-black text-gray-800 flex items-center gap-3">
+                                <span class="text-3xl">📅</span> خطة التدريب (7 أيام)
+                            </h3>
+                            <button onclick="togglePlan()" class="bg-secondary/10 text-secondary px-6 py-2 rounded-full font-black hover:bg-secondary hover:text-white transition-all no-print">
+                                ${state.showPlan ? 'إخفاء الخطة' : 'إظهار التفاصيل'}
+                            </button>
                         </div>
                         ${state.showPlan ? `
-                            <div class="grid gap-3">
+                            <div class="grid gap-4">
                                 ${res.plan.map((day, i) => `
-                                    <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-secondary/5 transition-colors border-r-4 border-secondary/30">
-                                        <div class="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">${i+1}</div>
-                                        <div class="text-sm text-gray-700 font-medium">${day}</div>
+                                    <div class="flex items-center gap-5 p-5 bg-amber-50/30 rounded-3xl hover:bg-secondary/5 transition-all border-r-4 border-secondary/20 group">
+                                        <div class="w-10 h-10 bg-secondary text-white rounded-2xl flex items-center justify-center font-black text-sm flex-shrink-0 group-hover:rotate-12 transition-transform">${i+1}</div>
+                                        <div class="text-base text-gray-700 font-semibold leading-relaxed">${day}</div>
                                     </div>
                                 `).join('')}
                             </div>
-                        ` : '<div class="text-center py-4 text-gray-400 italic">اضغط على إظهار التفاصيل لرؤية الخطة التدريبية المخصصة لك</div>'}
+                        ` : `
+                            <div class="text-center py-8 px-4 border-2 border-dashed border-gray-100 rounded-[2rem] text-gray-400">
+                                <p class="mb-2 italic">لقد أعددنا لك خطة تدريبية مخصصة بناءً على نقاط ضعفك.</p>
+                                <p class="text-sm font-bold">اضغط على الزر أعلاه لعرض الخطة.</p>
+                            </div>
+                        `}
                     </div>
 
-                    <div class="bg-white p-8 rounded-3xl shadow-lg space-y-6 text-center no-print">
-                        <h3 class="font-bold text-gray-700">شارك الإنجاز وحفظ التقرير ✨</h3>
+                    <!-- Actions Panel -->
+                    <div class="bg-white p-10 rounded-[3rem] shadow-2xl space-y-8 text-center no-print">
+                        <h3 class="font-black text-gray-700 text-xl">تواصل واحفظ نتائجك ✨</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button onclick="sendEmail()" class="bg-primary text-white font-bold py-4 rounded-2xl shadow hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
-                                <span>📧 إرسال للمعلمة</span>
+                            <button onclick="sendEmail()" class="bg-primary text-white font-black py-5 rounded-3xl shadow-xl hover:bg-teal-700 transition-all flex items-center justify-center gap-3 ring-offset-4 hover:ring-2 ring-primary">
+                                <span class="text-2xl">📧</span>
+                                <span>إرسال للمعلمة</span>
                             </button>
-                            <button onclick="handlePrint()" class="bg-white border-2 border-primary text-primary font-bold py-4 rounded-2xl shadow hover:bg-teal-50 transition-all">
-                                📄 تحميل التقرير (PDF)
+                            <button onclick="handlePrint()" class="bg-white border-2 border-primary text-primary font-black py-5 rounded-3xl shadow hover:bg-teal-50 transition-all flex items-center justify-center gap-3">
+                                <span class="text-2xl">📄</span>
+                                <span>تحميل PDF</span>
                             </button>
                         </div>
-                        <div class="flex justify-center gap-4">
-                            <button onclick="share('whatsapp')" class="bg-[#25D366] text-white px-6 py-2 rounded-full font-bold text-sm hover:scale-105 transition-transform">واتساب</button>
-                            <button onclick="share('twitter')" class="bg-black text-white px-6 py-2 rounded-full font-bold text-sm hover:scale-105 transition-transform">X (تويتر)</button>
+                        <div class="flex flex-wrap justify-center gap-4 pt-4 border-t border-gray-50">
+                            <button onclick="share('whatsapp')" class="bg-[#25D366] text-white px-8 py-3 rounded-full font-black text-sm hover:scale-105 transition-transform shadow-md">واتساب</button>
+                            <button onclick="share('twitter')" class="bg-black text-white px-8 py-3 rounded-full font-black text-sm hover:scale-105 transition-transform shadow-md">X (تويتر)</button>
                         </div>
                     </div>
 
                     ${state.isAdmin ? `
-                        <div class="bg-amber-50 p-6 rounded-3xl border-2 border-dashed border-amber-200 text-center space-y-4 no-print">
-                            <h3 class="font-bold text-amber-800">لوحة تحكم المعلمة 🔐</h3>
-                            <button onclick="exportCSV()" class="bg-amber-500 text-white px-8 py-3 rounded-2xl font-bold shadow hover:bg-amber-600 transition-all">تصدير ملف Excel</button>
+                        <div class="bg-amber-50 p-8 rounded-[3rem] border-2 border-dashed border-amber-200 text-center space-y-5 no-print">
+                            <h3 class="font-black text-amber-800 text-lg flex items-center justify-center gap-2"><span>🔐</span> أدوات المعلمة</h3>
+                            <button onclick="exportCSV()" class="bg-amber-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:bg-amber-600 transition-all">تصدير قاعدة البيانات (Excel)</button>
                         </div>
                     ` : ''}
 
-                    <div class="pt-8 no-print"><button onclick="restart()" class="w-full bg-red-100 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-200 transition-all">🔄 إعادة الاختبار</button></div>
+                    <div class="pt-10 no-print flex justify-center">
+                        <button onclick="restart()" class="text-red-400 font-bold hover:text-red-600 transition-all flex items-center gap-2 px-10 py-4 rounded-2xl hover:bg-red-50">
+                            <span>🔄</span>
+                            إعادة الاختبار من البداية
+                        </button>
+                    </div>
                 </div>
             `;
             if (state.reportType === 'مفصّل') setTimeout(() => initChart(res.categoryScores), 100);
         };
 
-        // --- Event Handlers ---
+        // --- Logic Handlers ---
         window.navigate = (step) => { 
             playSound('click'); 
             state.step = step; 
@@ -533,7 +589,7 @@ ${state.userInfo.fullName}`);
         };
 
         window.share = (p) => {
-            const text = encodeURIComponent(`حققت ${state.results.averageScore}/100 في اختبار توماس للقدرات الذهنية! 🧠 اختبر نفسك الآن من خلال هذا الرابط:`);
+            const text = encodeURIComponent(`حققت ${state.results.averageScore}/100 في اختبار توماس للقدرات الذهنية! 🧠 اختبر نفسك الآن.`);
             const url = encodeURIComponent(window.location.href);
             window.open(p === 'whatsapp' ? `https://wa.me/?text=${text}%20${url}` : `https://twitter.com/intent/tweet?text=${text}&url=${url}`);
         };
@@ -564,10 +620,12 @@ ${state.userInfo.fullName}`);
                         label: 'القدرات الذهنية',
                         data: scores.map(s => s.score),
                         fill: true,
-                        backgroundColor: 'rgba(13, 148, 136, 0.2)',
+                        backgroundColor: 'rgba(13, 148, 136, 0.25)',
                         borderColor: '#0D9488',
+                        borderWidth: 3,
                         pointBackgroundColor: '#0D9488',
                         pointBorderColor: '#fff',
+                        pointRadius: 4,
                         pointHoverBackgroundColor: '#fff',
                         pointHoverBorderColor: '#0D9488'
                     }]
@@ -577,22 +635,35 @@ ${state.userInfo.fullName}`);
                         r: {
                             min: 0,
                             max: 100,
-                            ticks: { display: false },
-                            pointLabels: { font: { size: 12, family: 'Tajawal' }, color: '#374151' }
+                            ticks: { display: false, stepSize: 20 },
+                            angleLines: { color: 'rgba(0,0,0,0.05)' },
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            pointLabels: { 
+                                font: { size: 14, family: 'Tajawal', weight: 'bold' }, 
+                                color: '#0D9488' 
+                            }
                         }
                     },
-                    plugins: { legend: { display: false } }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0D9488',
+                            titleFont: { family: 'Tajawal' },
+                            bodyFont: { family: 'Tajawal' }
+                        }
+                    }
                 }
             });
         };
 
-        // --- Setup ---
+        // --- Setup Audio ---
         document.getElementById('muteBtn').onclick = () => {
             state.isMuted = !state.isMuted;
             document.getElementById('mutedIcon').classList.toggle('hidden', !state.isMuted);
             document.getElementById('unmutedIcon').classList.toggle('hidden', state.isMuted);
         };
 
+        // --- Bootstrap App ---
         render();
     </script>
 </body>
