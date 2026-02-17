@@ -1,9 +1,599 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-  <title>Test Yourself with Thomas</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>اختبر نفسك مع توماس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: {
+                        primary: '#0D9488', // Teal 600
+                        secondary: '#F59E0B', // Amber 500
+                        background: '#F0FDFA', // Teal 50
+                    },
+                    animation: {
+                        'blob': 'blob 15s infinite ease-in-out',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'pulse-subtle': 'pulseSubtle 2s infinite ease-in-out',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%, 100%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        pulseSubtle: {
+                            '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+                            '50%': { transform: 'scale(1.05)', opacity: '0.8' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            @page { margin: 0.5cm; size: A4; }
+            body { background-color: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .no-print { display: none !important; }
+            .print-break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+            #root { width: 100% !important; padding: 0 !important; }
+        }
+        .blob { position: fixed; width: 400px; height: 400px; filter: blur(80px); z-index: -1; opacity: 0.4; pointer-events: none; }
+        .transition-all { transition: all 0.3s ease; }
+        .answer-btn:active { transform: scale(0.98); }
+    </style>
 </head>
-<body>
-  <h1>Welcome to Test Yourself with Thomas</h1>
+<body class="bg-background text-gray-800 font-sans min-h-screen flex flex-col overflow-x-hidden">
+    <!-- Background Elements -->
+    <div class="blob bg-primary/20 top-[-10%] right-[-10%] animate-blob"></div>
+    <div class="blob bg-secondary/15 bottom-[-10%] left-[-10%] animate-blob" style="animation-delay: 2s;"></div>
+    
+    <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-50 no-print">
+        <div class="max-w-2xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-bold text-primary flex items-center gap-2">
+                <span class="text-2xl">🧠</span> اختبر نفسك مع توماس
+            </h1>
+            <div class="flex items-center gap-2">
+                <button id="muteBtn" class="p-2 rounded-full hover:bg-gray-100 transition-colors text-primary" title="كتم/تشغيل الصوت">
+                    <svg id="unmutedIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                    <svg id="mutedIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="root" class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center z-10 min-h-[70vh]">
+        <!-- Views will be rendered here -->
+    </main>
+
+    <footer class="bg-white/80 backdrop-blur-sm py-6 border-t mt-auto no-print z-10">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>@2025 | اختبر نفسك مع توماس</p>
+            <p class="text-xs mt-1">صمم بواسطة: أ. أمينة قطن</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Questions Data ---
+        const Category = {
+            ATTENTION: 'الانتباه والتركيز',
+            MEMORY: 'الذاكرة العاملة والقصيرة',
+            LOGIC: 'التفكير المنطقي وحل المشكلات',
+            SPEED: 'سرعة المعالجة واتخاذ القرار',
+            FLEXIBILITY: 'المرونة الذهنية والتنظيم الذاتي'
+        };
+
+        const rawQuestions = [
+            { text: "أستطيع الاستمرار في القراءة أو العمل حتى لو كان هناك ضجيج خفيف حولي.", category: Category.ATTENTION },
+            { text: "عندما أتحدث مع شخص، أركز معه بالكامل ولا يسرح ذهني في أمور أخرى.", category: Category.ATTENTION },
+            { text: "ألاحظ التفاصيل الصغيرة التي قد تفوت الآخرين في الصور أو النصوص.", category: Category.ATTENTION },
+            { text: "أستطيع العودة لعملي بسرعة بعد مقاطعة مفاجئة دون أن أفقد تركيزي.", category: Category.ATTENTION },
+            { text: "نادراً ما أفقد أغراضي الشخصية (مثل المفاتيح أو الهاتف).", category: Category.ATTENTION },
+            { text: "أستطيع متابعة فيلم طويل أو محاضرة دون الشعور بالملل أو التشتت بسرعة.", category: Category.ATTENTION },
+            { text: "أنجز المهام التي تتطلب دقة عالية دون ارتكاب أخطاء سهوة.", category: Category.ATTENTION },
+            { text: "إذا أعطاني شخص رقم هاتف شفوياً، أستطيع تذكره حتى أكتبه.", category: Category.MEMORY },
+            { text: "أتذكر قائمة المشتريات البسيطة (3-5 أغراض) دون كتابتها.", category: Category.MEMORY },
+            { text: "عندما أدخل غرفة لجلب شيء ما، أتذكر فوراً ماذا كنت أريد.", category: Category.MEMORY },
+            { text: "أستطيع تذكر تعليمات متعددة الخطوات وتنفيذها بالترتيب الصحيح.", category: Category.MEMORY },
+            { text: "أتذكر أسماء الأشخاص الذين التقيت بهم حديثاً بسهولة.", category: Category.MEMORY },
+            { text: "يمكنني إجراء عمليات حسابية بسيطة في ذهني دون ورقة وقلم.", category: Category.MEMORY },
+            { text: "أتذكر مواعيد مهامي اليومية دون الحاجة للنظر في التقويم باستمرار.", category: Category.MEMORY },
+            { text: "عندما أواجه مشكلة تقنية، أحاول فهم السبب الجذري قبل طلب المساعدة.", category: Category.LOGIC },
+            { text: "أستطيع ربط المعلومات ببعضها لاستنتاج حلول جديدة.", category: Category.LOGIC },
+            { text: "أحب ألعاب الألغاز والكلمات المتقاطعة أو الشطرنج.", category: Category.LOGIC },
+            { text: "عندما يجادلني شخص، أستطيع اكتشاف التناقضات في كلامه بسهولة.", category: Category.LOGIC },
+            { text: "أخطط لخطواتي القادمة قبل البدء في أي مشروع جديد.", category: Category.LOGIC },
+            { text: "أستطيع شرح الأفكار المعقدة للآخرين بطريقة مبسطة.", category: Category.LOGIC },
+            { text: "أوازن بين الإيجابيات والسلبيات قبل اتخاذ قرارات مصيرية.", category: Category.LOGIC },
+            { text: "أفهم النكات أو التلميحات بسرعة في المحادثات.", category: Category.SPEED },
+            { text: "أستطيع اتخاذ قرار سريع في المطعم أو عند الشراء دون تردد طويل.", category: Category.SPEED },
+            { text: "عندما يسألني أحد سؤالاً مفاجئاً، تكون إجابتي حاضرة وسريعة.", category: Category.SPEED },
+            { text: "أنجز المهام الروتينية بسرعة مقارنة بزملائي أو من حولي.", category: Category.SPEED },
+            { text: "أستوعب المعلومات الجديدة في العمل أو الدراسة بسرعة.", category: Category.SPEED },
+            { text: "ردة فعلي سريعة عند حدوث شيء غير متوقع (مثلاً سقوط شيء).", category: Category.SPEED },
+            { text: "أقرأ النصوص والرسائل بسرعة مع فهم محتواها.", category: Category.SPEED },
+            { text: "إذا تغيرت الخطة فجأة، أستطيع التكيف مع الوضع الجديد دون توتر.", category: Category.FLEXIBILITY },
+            { text: "أتقبل وجهات النظر المختلفة حتى لو كانت تخالف رأيي.", category: Category.FLEXIBILITY },
+            { text: "أستطيع الانتقال من مهمة إلى أخرى بسلاسة.", category: Category.FLEXIBILITY },
+            { text: "أسيطر على انفعالاتي ولا أغضب بسهولة عند حدوث أخطاء.", category: Category.FLEXIBILITY },
+            { text: "أعترف بخطئي إذا اكتشفت أنني كنت على غير صواب.", category: Category.FLEXIBILITY },
+            { text: "أستطيع تغيير طريقتي في العمل إذا وجدت طريقة أفضل.", category: Category.FLEXIBILITY },
+            { text: "أرتب أولوياتي بوضوح عندما تتراكم علي الأعمال.", category: Category.FLEXIBILITY },
+            { text: "أتعافى نفسياً بسرعة بعد يوم سيء أو موقف محبط.", category: Category.FLEXIBILITY },
+        ];
+
+        // --- State Management ---
+        let state = {
+            step: 'welcome',
+            userInfo: JSON.parse(localStorage.getItem('thomas_quiz_user')) || { fullName: '', phone: '', isStudent: false },
+            mode: 'قياسي',
+            reportType: 'مفصّل',
+            questions: [],
+            currentQIndex: 0,
+            answers: [],
+            isMuted: false,
+            results: null,
+            showPlan: false,
+            isAdmin: new URLSearchParams(window.location.search).get('admin') === 'true'
+        };
+
+        // --- Sound Logic ---
+        const playSound = (type) => {
+            if (state.isMuted) return;
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (type === 'click') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'success') {
+                [523, 659, 783, 1046].forEach((f, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.frequency.setValueAtTime(f, audioCtx.currentTime + i * 0.1);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime + i * 0.1);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + i * 0.1); osc.stop(audioCtx.currentTime + i * 0.1 + 0.2);
+                });
+            }
+        };
+
+        // --- Scoring Logic ---
+        const calculateResults = () => {
+            const categories = Object.values(Category);
+            const categoryScores = [];
+            let totalSum = 0;
+            let count = 0;
+
+            categories.forEach(cat => {
+                const catAns = state.answers.filter(a => a.category === cat);
+                if (catAns.length === 0) return;
+                const sum = catAns.reduce((acc, curr) => acc + curr.score, 0);
+                const score = Math.round((sum / (catAns.length * 5)) * 100);
+                let level = score >= 80 ? 'ممتاز' : score >= 60 ? 'جيد' : score >= 40 ? 'متوسط' : 'منخفض';
+                categoryScores.push({ category: cat, score, level });
+                totalSum += score;
+                count++;
+            });
+
+            const averageScore = Math.round(totalSum / count);
+            let overallLevel = averageScore >= 80 ? 'ممتاز' : averageScore >= 60 ? 'جيد' : averageScore >= 40 ? 'متوسط' : 'منخفض';
+
+            const sorted = [...categoryScores].sort((a, b) => b.score - a.score);
+            const strengths = sorted.slice(0, 3).filter(s => s.score >= 60).map(s => `تتميز بأداء رائع في **${s.category}**.`);
+            const improvements = [...sorted].reverse().slice(0, 3).filter(s => s.score < 60).map(s => `هناك فرصة جيدة لتنمية **${s.category}**.`);
+            
+            if (strengths.length === 0) strengths.push("لديك إمكانات كبيرة تنتظر التوظيف الأمثل.");
+            if (improvements.length === 0) improvements.push("حافظ على هذا التوازن الممتاز في قدراتك.");
+
+            const lowest = sorted[sorted.length - 1].category;
+            const plan = [
+                `يوم 1: ابدأ بملاحظة العوامل التي تشتت ذهنك في ${lowest}.`,
+                "يوم 2: نظم وقت نومك ليكون 8 ساعات يومياً لراحة دماغك.",
+                "يوم 3: جرب تمرين 'العد التنازلي' من 100 لزيادة التركيز.",
+                "يوم 4: تناول وجبات غنية بالفوسفور والأوميغا 3 والمكسرات.",
+                "يوم 5: خصص 20 دقيقة للقراءة المركزة بعيداً عن هاتفك.",
+                "يوم 6: مارس لعبة ذهنية كالسودوكو أو الشطرنج لمدة ساعة.",
+                "يوم 7: راجع تقدمك وكافئ نفسك على التزامك بالخطة."
+            ];
+
+            return { categoryScores, averageScore, overallLevel, strengths, improvements, plan };
+        };
+
+        // --- Views ---
+        const render = () => {
+            const root = document.getElementById('root');
+            root.innerHTML = '';
+            window.scrollTo(0,0);
+
+            switch(state.step) {
+                case 'welcome': renderWelcome(root); break;
+                case 'registration': renderRegistration(root); break;
+                case 'mode': renderMode(root); break;
+                case 'report_type': renderReportType(root); break;
+                case 'quiz': renderQuiz(root); break;
+                case 'results': renderResults(root); break;
+            }
+        };
+
+        const renderWelcome = (root) => {
+            root.innerHTML = `
+                <div class="text-center space-y-8 animate-fade-in max-w-md">
+                    <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-xl mx-auto animate-pulse-subtle">
+                        <span class="text-5xl">🧐</span>
+                    </div>
+                    <div class="space-y-4">
+                        <h2 class="text-3xl font-extrabold text-gray-800">مرحباً! أنا توماس 👋</h2>
+                        <p class="text-gray-600 leading-relaxed">أنا رفيقك الذكي. سأقوم بتقييم قدراتك الذهنية والعقلية بأسلوب ممتع ودقيق لنعرف مواطن قوتك.</p>
+                    </div>
+                    <button onclick="navigate('registration')" class="w-full bg-primary text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:bg-teal-700 active:scale-95 transition-all text-xl">لنبدأ الرحلة 🚀</button>
+                </div>
+            `;
+        };
+
+        const renderRegistration = (root) => {
+            root.innerHTML = `
+                <div class="w-full max-w-md bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-t-8 border-primary animate-fade-in">
+                    <h2 class="text-2xl font-bold text-primary text-center mb-6">من أنت أيها الذكي؟ 📝</h2>
+                    <form id="regForm" onsubmit="handleRegistration(event)" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">الاسم بالكامل</label>
+                            <input id="fullName" type="text" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary text-right" placeholder="أدخل اسمك هنا" value="${state.userInfo.fullName}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">رقم الهاتف</label>
+                            <input id="phone" type="tel" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary text-right" placeholder="9xxxxxxx" value="${state.userInfo.phone}">
+                        </div>
+                        <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">هل أنت طالب بالكلية المهنية؟</label>
+                            <div class="flex gap-6">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="isStudent" value="true" ${state.userInfo.isStudent ? 'checked' : ''}> نعم</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="isStudent" value="false" ${!state.userInfo.isStudent ? 'checked' : ''}> لا</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md hover:bg-teal-700 active:scale-95 transition-all">متابعة ➡️</button>
+                    </form>
+                </div>
+            `;
+        };
+
+        const renderMode = (root) => {
+            root.innerHTML = `
+                <div class="text-center space-y-8 animate-fade-in max-w-md w-full">
+                    <h2 class="text-2xl font-bold text-gray-800">رائع يا ${state.userInfo.fullName.split(' ')[0]}! ✨</h2>
+                    <p class="text-gray-600">اختر النمط الذي تفضله للاختبار:</p>
+                    <div class="grid gap-4">
+                        <button onclick="startQuiz('سريع')" class="w-full bg-white border-2 border-primary text-primary font-bold py-5 rounded-2xl shadow hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-6">
+                            <span>سريع (12 سؤال)</span> <span class="text-2xl">🏎️</span>
+                        </button>
+                        <button onclick="startQuiz('قياسي')" class="w-full bg-primary text-white font-bold py-5 rounded-2xl shadow-lg hover:bg-teal-700 active:scale-95 transition-all flex items-center justify-between px-6">
+                            <span>قياسي (24 سؤال)</span> <span class="text-2xl">📏</span>
+                        </button>
+                        <button onclick="startQuiz('موسّع')" class="w-full bg-white border-2 border-primary text-primary font-bold py-5 rounded-2xl shadow hover:bg-teal-50 active:scale-95 transition-all flex items-center justify-between px-6">
+                            <span>موسّع (36 سؤال)</span> <span class="text-2xl">🧠</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderReportType = (root) => {
+            root.innerHTML = `
+                <div class="text-center space-y-8 animate-fade-in max-w-md w-full">
+                    <div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto shadow-lg"><span class="text-4xl">📊</span></div>
+                    <h2 class="text-2xl font-bold text-gray-800">نوع التقرير المفضل؟</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onclick="setReportType('مختصر')" class="bg-white border-2 border-primary text-primary font-bold py-6 rounded-2xl hover:bg-teal-50 transition-all shadow">ملخص النتيجة</button>
+                        <button onclick="setReportType('مفصّل')" class="bg-primary text-white font-bold py-6 rounded-2xl hover:bg-teal-700 transition-all shadow-lg">تحليل كامل</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderQuiz = (root) => {
+            const q = state.questions[state.currentQIndex];
+            const progress = Math.round(((state.currentQIndex + 1) / state.questions.length) * 100);
+            
+            root.innerHTML = `
+                <div class="w-full max-w-xl animate-fade-in">
+                    <div class="flex justify-between items-center mb-6 no-print">
+                        <div class="text-sm font-bold text-gray-400">السؤال ${state.currentQIndex + 1} من ${state.questions.length}</div>
+                        <button onclick="navigate('welcome')" class="text-xs text-red-500 hover:underline">إلغاء الاختبار</button>
+                    </div>
+                    
+                    <div class="w-full bg-gray-200 h-2 rounded-full mb-8 overflow-hidden shadow-inner">
+                        <div class="bg-secondary h-full transition-all duration-500" style="width: ${progress}%"></div>
+                    </div>
+
+                    <div class="bg-white p-10 rounded-3xl shadow-xl border-b-8 border-primary text-center mb-8 min-h-[160px] flex items-center justify-center relative">
+                        <div class="absolute -top-3 right-6 bg-primary text-white text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">${q.category}</div>
+                        <h3 class="text-2xl font-bold text-gray-800 leading-relaxed">"${q.text}"</h3>
+                    </div>
+
+                    <div class="grid gap-3">
+                        ${[
+                            { score: 5, label: "ينطبق تماماً", emoji: "🤩" },
+                            { score: 4, label: "ينطبق غالباً", emoji: "🙂" },
+                            { score: 3, label: "أحياناً", emoji: "😐" },
+                            { score: 2, label: "نادراً", emoji: "😕" },
+                            { score: 1, label: "لا ينطبق", emoji: "🙅‍♂️" }
+                        ].map(opt => `
+                            <button onclick="handleAnswer(${opt.score})" class="answer-btn flex items-center justify-between p-4 bg-white/80 border border-gray-200 rounded-2xl hover:bg-teal-50 hover:border-primary transition-all group">
+                                <span class="text-3xl group-hover:scale-110 transition-transform">${opt.emoji}</span>
+                                <span class="font-bold text-gray-700 text-lg">${opt.label}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderResults = (root) => {
+            const res = state.results;
+            root.innerHTML = `
+                <div class="w-full max-w-3xl space-y-8 animate-fade-in pb-12">
+                    <div class="text-center space-y-2">
+                        <div class="text-5xl mb-4">🏆</div>
+                        <h2 class="text-3xl font-black text-gray-800">تقرير القدرات الذهنية</h2>
+                        <div class="text-primary font-bold text-xl">${state.userInfo.fullName}</div>
+                        <div class="text-sm text-gray-400">رقم الهاتف: ${state.userInfo.phone} | ${state.userInfo.isStudent ? 'طالب بالكلية' : 'زائر'}</div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-primary to-teal-800 text-white p-8 rounded-[40px] shadow-2xl text-center relative overflow-hidden print-break-inside-avoid">
+                        <div class="relative z-10 space-y-1">
+                            <div class="text-sm uppercase tracking-widest opacity-80">متوسط ذكاء الأداء</div>
+                            <div class="text-7xl font-black">${res.averageScore}%</div>
+                            <div class="inline-block bg-white/20 backdrop-blur-sm px-6 py-2 rounded-full font-bold mt-4">المستوى: ${res.overallLevel}</div>
+                        </div>
+                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                    </div>
+
+                    ${state.reportType === 'مفصّل' ? `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 print-break-inside-avoid">
+                                <h3 class="font-bold text-gray-700 mb-6 text-center">توزيع القدرات الذهنية</h3>
+                                <canvas id="scoreChart" class="w-full"></canvas>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-green-50 p-6 rounded-3xl border border-green-100 print-break-inside-avoid">
+                                    <h4 class="font-bold text-green-800 mb-3 flex items-center gap-2"><span>💪</span> نقاط القوة</h4>
+                                    <ul class="text-sm space-y-3 text-gray-700">
+                                        ${res.strengths.map(s => `<li class="flex items-start gap-2"><span class="text-green-500 font-bold">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100 print-break-inside-avoid">
+                                    <h4 class="font-bold text-amber-800 mb-3 flex items-center gap-2"><span>🌱</span> مجالات التطور</h4>
+                                    <ul class="text-sm space-y-3 text-gray-700">
+                                        ${res.improvements.map(s => `<li class="flex items-start gap-2"><span class="text-amber-500 font-bold">•</span>${s.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="bg-white p-8 rounded-3xl shadow-xl border-t-8 border-secondary print-break-inside-avoid">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">📅 خطة التطوير (7 أيام)</h3>
+                            <button onclick="togglePlan()" class="text-primary text-sm font-bold no-print">${state.showPlan ? 'إخفاء الخطة' : 'إظهار التفاصيل'}</button>
+                        </div>
+                        ${state.showPlan ? `
+                            <div class="grid gap-3">
+                                ${res.plan.map((day, i) => `
+                                    <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-secondary/5 transition-colors border-r-4 border-secondary/30">
+                                        <div class="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">${i+1}</div>
+                                        <div class="text-sm text-gray-700 font-medium">${day}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="text-center py-4 text-gray-400 italic">اضغط على إظهار التفاصيل لرؤية الخطة التدريبية المخصصة لك</div>'}
+                    </div>
+
+                    <div class="bg-white p-8 rounded-3xl shadow-lg space-y-6 text-center no-print">
+                        <h3 class="font-bold text-gray-700">شارك الإنجاز وحفظ التقرير ✨</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button onclick="sendEmail()" class="bg-primary text-white font-bold py-4 rounded-2xl shadow hover:bg-teal-700 transition-all flex items-center justify-center gap-2">
+                                <span>📧 إرسال للمعلمة</span>
+                            </button>
+                            <button onclick="handlePrint()" class="bg-white border-2 border-primary text-primary font-bold py-4 rounded-2xl shadow hover:bg-teal-50 transition-all">
+                                📄 تحميل التقرير (PDF)
+                            </button>
+                        </div>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="share('whatsapp')" class="bg-[#25D366] text-white px-6 py-2 rounded-full font-bold text-sm hover:scale-105 transition-transform">واتساب</button>
+                            <button onclick="share('twitter')" class="bg-black text-white px-6 py-2 rounded-full font-bold text-sm hover:scale-105 transition-transform">X (تويتر)</button>
+                        </div>
+                    </div>
+
+                    ${state.isAdmin ? `
+                        <div class="bg-amber-50 p-6 rounded-3xl border-2 border-dashed border-amber-200 text-center space-y-4 no-print">
+                            <h3 class="font-bold text-amber-800">لوحة تحكم المعلمة 🔐</h3>
+                            <button onclick="exportCSV()" class="bg-amber-500 text-white px-8 py-3 rounded-2xl font-bold shadow hover:bg-amber-600 transition-all">تصدير ملف Excel</button>
+                        </div>
+                    ` : ''}
+
+                    <div class="pt-8 no-print"><button onclick="restart()" class="w-full bg-red-100 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-200 transition-all">🔄 إعادة الاختبار</button></div>
+                </div>
+            `;
+            if (state.reportType === 'مفصّل') setTimeout(() => initChart(res.categoryScores), 100);
+        };
+
+        // --- Event Handlers ---
+        window.navigate = (step) => { 
+            playSound('click'); 
+            state.step = step; 
+            render(); 
+        };
+
+        window.handleRegistration = (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value;
+            const phone = document.getElementById('phone').value;
+            const isStudent = document.querySelector('input[name="isStudent"]:checked').value === 'true';
+            
+            state.userInfo = { fullName, phone, isStudent };
+            localStorage.setItem('thomas_quiz_user', JSON.stringify(state.userInfo));
+            navigate('mode');
+        };
+
+        window.startQuiz = (mode) => {
+            state.mode = mode;
+            let count = mode === 'سريع' ? 12 : mode === 'موسّع' ? 36 : 24;
+            
+            const grouped = {};
+            Object.values(Category).forEach(c => grouped[c] = rawQuestions.filter(q => q.category === c));
+            
+            state.questions = [];
+            let added = 0; let round = 0;
+            const cats = Object.values(Category);
+            while (added < count) {
+                for (let c of cats) {
+                    if (added >= count) break;
+                    if (grouped[c][round]) {
+                        state.questions.push(grouped[c][round]);
+                        added++;
+                    }
+                }
+                round++;
+            }
+            navigate('report_type');
+        };
+
+        window.setReportType = (type) => {
+            state.reportType = type;
+            state.currentQIndex = 0;
+            state.answers = [];
+            navigate('quiz');
+        };
+
+        window.handleAnswer = (score) => {
+            playSound('click');
+            state.answers.push({ score, category: state.questions[state.currentQIndex].category });
+            
+            if (state.currentQIndex < state.questions.length - 1) {
+                state.currentQIndex++;
+                render();
+            } else {
+                playSound('success');
+                state.results = calculateResults();
+                state.step = 'results';
+                render();
+            }
+        };
+
+        window.togglePlan = () => {
+            state.showPlan = !state.showPlan;
+            render();
+        };
+
+        window.restart = () => {
+            state.answers = [];
+            state.currentQIndex = 0;
+            state.results = null;
+            state.showPlan = false;
+            navigate('welcome');
+        };
+
+        window.handlePrint = () => {
+            state.showPlan = true;
+            render();
+            setTimeout(() => window.print(), 500);
+        };
+
+        window.sendEmail = () => {
+            const r = state.results;
+            const email = "amina.qatan@svc.edu.om";
+            const subject = encodeURIComponent(`نتائج اختبار توماس: ${state.userInfo.fullName}`);
+            const body = encodeURIComponent(`مرحباً أ. أمينة، هذه هي نتائج اختباري في "اختبر نفسك مع توماس":
+            
+اسم المتسابق: ${state.userInfo.fullName}
+رقم الهاتف: ${state.userInfo.phone}
+الدرجة الكلية: ${r.averageScore}/100
+المستوى العام: ${r.overallLevel}
+
+تفاصيل القدرات الذهنية:
+${r.categoryScores.map(s => `- ${s.category}: ${s.score}% (${s.level})`).join('\n')}
+
+تحياتي،
+${state.userInfo.fullName}`);
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+        };
+
+        window.share = (p) => {
+            const text = encodeURIComponent(`حققت ${state.results.averageScore}/100 في اختبار توماس للقدرات الذهنية! 🧠 اختبر نفسك الآن من خلال هذا الرابط:`);
+            const url = encodeURIComponent(window.location.href);
+            window.open(p === 'whatsapp' ? `https://wa.me/?text=${text}%20${url}` : `https://twitter.com/intent/tweet?text=${text}&url=${url}`);
+        };
+
+        window.exportCSV = () => {
+            const r = state.results;
+            const headers = ['الاسم', 'الهاتف', 'طالب بالكلية', 'الدرجة الكلية', 'المستوى', ...r.categoryScores.map(s => s.category)];
+            const row = [state.userInfo.fullName, state.userInfo.phone, state.userInfo.isStudent ? 'نعم' : 'لا', r.averageScore, r.overallLevel, ...r.categoryScores.map(s => s.score)];
+            const csv = "\uFEFF" + headers.join(',') + "\n" + row.join(',');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `نتائج_توماس_${state.userInfo.fullName}.csv`;
+            link.click();
+        };
+
+        const initChart = (scores) => {
+            const ctx = document.getElementById('scoreChart');
+            if (!ctx) return;
+            
+            const labels = scores.map(s => s.category.split(' ')[0]);
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'القدرات الذهنية',
+                        data: scores.map(s => s.score),
+                        fill: true,
+                        backgroundColor: 'rgba(13, 148, 136, 0.2)',
+                        borderColor: '#0D9488',
+                        pointBackgroundColor: '#0D9488',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#0D9488'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 100,
+                            ticks: { display: false },
+                            pointLabels: { font: { size: 12, family: 'Tajawal' }, color: '#374151' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        };
+
+        // --- Setup ---
+        document.getElementById('muteBtn').onclick = () => {
+            state.isMuted = !state.isMuted;
+            document.getElementById('mutedIcon').classList.toggle('hidden', !state.isMuted);
+            document.getElementById('unmutedIcon').classList.toggle('hidden', state.isMuted);
+        };
+
+        render();
+    </script>
 </body>
 </html>
